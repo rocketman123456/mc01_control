@@ -1,20 +1,20 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * File Name          : freertos.c
-  * Description        : Code for freertos applications
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2025 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * File Name          : freertos.c
+ * Description        : Code for freertos applications
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2025 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
@@ -25,7 +25,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "state_data.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -111,20 +111,20 @@ const osThreadAttr_t voltReadTask_attributes = {
   .stack_size = sizeof(voltReadTaskBuffer),
   .priority = (osPriority_t) osPriorityLow,
 };
-/* Definitions for usbCmdQueue */
-osMessageQueueId_t usbCmdQueueHandle;
-uint8_t usbCmdQueueBuffer[ 16 * sizeof( uint16_t ) ];
-osStaticMessageQDef_t usbCmdQueueControlBlock;
-const osMessageQueueAttr_t usbCmdQueue_attributes = {
-  .name = "usbCmdQueue",
-  .cb_mem = &usbCmdQueueControlBlock,
-  .cb_size = sizeof(usbCmdQueueControlBlock),
-  .mq_mem = &usbCmdQueueBuffer,
-  .mq_size = sizeof(usbCmdQueueBuffer)
+/* Definitions for usbCmdQueue1 */
+osMessageQueueId_t usbCmdQueue1Handle;
+uint8_t usbCmdQueue1Buffer[ 16 * sizeof( GlobalMotorCmd ) ];
+osStaticMessageQDef_t usbCmdQueue1ControlBlock;
+const osMessageQueueAttr_t usbCmdQueue1_attributes = {
+  .name = "usbCmdQueue1",
+  .cb_mem = &usbCmdQueue1ControlBlock,
+  .cb_size = sizeof(usbCmdQueue1ControlBlock),
+  .mq_mem = &usbCmdQueue1Buffer,
+  .mq_size = sizeof(usbCmdQueue1Buffer)
 };
 /* Definitions for usbStateQueue */
 osMessageQueueId_t usbStateQueueHandle;
-uint8_t usbStateQueueBuffer[ 16 * sizeof( uint16_t ) ];
+uint8_t usbStateQueueBuffer[ 16 * sizeof( GlobalMotorState ) ];
 osStaticMessageQDef_t usbStateQueueControlBlock;
 const osMessageQueueAttr_t usbStateQueue_attributes = {
   .name = "usbStateQueue",
@@ -132,6 +132,17 @@ const osMessageQueueAttr_t usbStateQueue_attributes = {
   .cb_size = sizeof(usbStateQueueControlBlock),
   .mq_mem = &usbStateQueueBuffer,
   .mq_size = sizeof(usbStateQueueBuffer)
+};
+/* Definitions for usbCmdQueue2 */
+osMessageQueueId_t usbCmdQueue2Handle;
+uint8_t usbCmdQueue2Buffer[ 16 * sizeof( GlobalMotorCmd ) ];
+osStaticMessageQDef_t usbCmdQueue2ControlBlock;
+const osMessageQueueAttr_t usbCmdQueue2_attributes = {
+  .name = "usbCmdQueue2",
+  .cb_mem = &usbCmdQueue2ControlBlock,
+  .cb_size = sizeof(usbCmdQueue2ControlBlock),
+  .mq_mem = &usbCmdQueue2Buffer,
+  .mq_size = sizeof(usbCmdQueue2Buffer)
 };
 /* Definitions for motorDataMutex */
 osMutexId_t motorDataMutexHandle;
@@ -156,6 +167,14 @@ const osSemaphoreAttr_t can2BinarySem_attributes = {
   .name = "can2BinarySem",
   .cb_mem = &can2BinarySemControlBlock,
   .cb_size = sizeof(can2BinarySemControlBlock),
+};
+/* Definitions for usbBinarySem */
+osSemaphoreId_t usbBinarySemHandle;
+osStaticSemaphoreDef_t usbBinarySemControlBlock;
+const osSemaphoreAttr_t usbBinarySem_attributes = {
+  .name = "usbBinarySem",
+  .cb_mem = &usbBinarySemControlBlock,
+  .cb_size = sizeof(usbBinarySemControlBlock),
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -186,7 +205,7 @@ void MX_FREERTOS_Init(void) {
   motorDataMutexHandle = osMutexNew(&motorDataMutex_attributes);
 
   /* USER CODE BEGIN RTOS_MUTEX */
-  /* add mutexes, ... */
+    /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
 
   /* Create the semaphores(s) */
@@ -196,23 +215,29 @@ void MX_FREERTOS_Init(void) {
   /* creation of can2BinarySem */
   can2BinarySemHandle = osSemaphoreNew(1, 0, &can2BinarySem_attributes);
 
+  /* creation of usbBinarySem */
+  usbBinarySemHandle = osSemaphoreNew(1, 0, &usbBinarySem_attributes);
+
   /* USER CODE BEGIN RTOS_SEMAPHORES */
-  /* add semaphores, ... */
+    /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
 
   /* USER CODE BEGIN RTOS_TIMERS */
-  /* start timers, add new ones, ... */
+    /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
 
   /* Create the queue(s) */
-  /* creation of usbCmdQueue */
-  usbCmdQueueHandle = osMessageQueueNew (16, sizeof(uint16_t), &usbCmdQueue_attributes);
+  /* creation of usbCmdQueue1 */
+  usbCmdQueue1Handle = osMessageQueueNew (16, sizeof(GlobalMotorCmd), &usbCmdQueue1_attributes);
 
   /* creation of usbStateQueue */
-  usbStateQueueHandle = osMessageQueueNew (16, sizeof(uint16_t), &usbStateQueue_attributes);
+  usbStateQueueHandle = osMessageQueueNew (16, sizeof(GlobalMotorState), &usbStateQueue_attributes);
+
+  /* creation of usbCmdQueue2 */
+  usbCmdQueue2Handle = osMessageQueueNew (16, sizeof(GlobalMotorCmd), &usbCmdQueue2_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
-  /* add queues, ... */
+    /* add queues, ... */
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
@@ -232,105 +257,105 @@ void MX_FREERTOS_Init(void) {
   voltReadTaskHandle = osThreadNew(VoltReadTask, NULL, &voltReadTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
-  /* add threads, ... */
+    /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
-  /* add events, ... */
+    /* add events, ... */
   /* USER CODE END RTOS_EVENTS */
 
 }
 
 /* USER CODE BEGIN Header_StartDefaultTask */
 /**
-  * @brief  Function implementing the defaultTask thread.
-  * @param  argument: Not used
-  * @retval None
-  */
+ * @brief  Function implementing the defaultTask thread.
+ * @param  argument: Not used
+ * @retval None
+ */
 /* USER CODE END Header_StartDefaultTask */
 __weak void StartDefaultTask(void *argument)
 {
   /* init code for USB_DEVICE */
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN StartDefaultTask */
-  /* Infinite loop */
-  for(;;)
-  {
-		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-    osDelay(500);
-  }
+    /* Infinite loop */
+    for (;;)
+    {
+        HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+        osDelay(500);
+    }
   /* USER CODE END StartDefaultTask */
 }
 
 /* USER CODE BEGIN Header_CAN1_CtrlTask */
 /**
-* @brief Function implementing the can1CtrlTask thread.
-* @param argument: Not used
-* @retval None
-*/
+ * @brief Function implementing the can1CtrlTask thread.
+ * @param argument: Not used
+ * @retval None
+ */
 /* USER CODE END Header_CAN1_CtrlTask */
 __weak void CAN1_CtrlTask(void *argument)
 {
   /* USER CODE BEGIN CAN1_CtrlTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
+    /* Infinite loop */
+    for (;;)
+    {
+        osDelay(1);
+    }
   /* USER CODE END CAN1_CtrlTask */
 }
 
 /* USER CODE BEGIN Header_CAN2_CtrlTask */
 /**
-* @brief Function implementing the can2CtrlTask thread.
-* @param argument: Not used
-* @retval None
-*/
+ * @brief Function implementing the can2CtrlTask thread.
+ * @param argument: Not used
+ * @retval None
+ */
 /* USER CODE END Header_CAN2_CtrlTask */
 __weak void CAN2_CtrlTask(void *argument)
 {
   /* USER CODE BEGIN CAN2_CtrlTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
+    /* Infinite loop */
+    for (;;)
+    {
+        osDelay(1);
+    }
   /* USER CODE END CAN2_CtrlTask */
 }
 
 /* USER CODE BEGIN Header_USB_Task */
 /**
-* @brief Function implementing the usbTask thread.
-* @param argument: Not used
-* @retval None
-*/
+ * @brief Function implementing the usbTask thread.
+ * @param argument: Not used
+ * @retval None
+ */
 /* USER CODE END Header_USB_Task */
 __weak void USB_Task(void *argument)
 {
   /* USER CODE BEGIN USB_Task */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
+    /* Infinite loop */
+    for (;;)
+    {
+        osDelay(1);
+    }
   /* USER CODE END USB_Task */
 }
 
 /* USER CODE BEGIN Header_VoltReadTask */
 /**
-* @brief Function implementing the voltReadTask thread.
-* @param argument: Not used
-* @retval None
-*/
+ * @brief Function implementing the voltReadTask thread.
+ * @param argument: Not used
+ * @retval None
+ */
 /* USER CODE END Header_VoltReadTask */
 __weak void VoltReadTask(void *argument)
 {
   /* USER CODE BEGIN VoltReadTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
+    /* Infinite loop */
+    for (;;)
+    {
+        osDelay(1);
+    }
   /* USER CODE END VoltReadTask */
 }
 

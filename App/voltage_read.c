@@ -3,13 +3,10 @@
 #include "cmsis_os.h"
 
 #include "adc.h"
+#include "state_data.h"
 #include "usbd_cdc_if.h"
 
-float          voltage;
 volatile float voltage_vrefint_proportion = 3.3 / 4096.0; // 8.0586080586080586080586080586081e-4f;// 3.3/4096
-
-uint8_t usb_rx_buffer[64];
-uint8_t usb_tx_buffer[64];
 
 static uint16_t adcx_get_chx_value(ADC_HandleTypeDef* ADCx, uint32_t ch)
 {
@@ -29,7 +26,7 @@ static uint16_t adcx_get_chx_value(ADC_HandleTypeDef* ADCx, uint32_t ch)
     return (uint16_t)HAL_ADC_GetValue(ADCx);
 }
 
-float get_battery_voltage(void)
+static float get_battery_voltage(void)
 {
     float    volt;
     uint16_t adcx = 0;

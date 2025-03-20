@@ -1,8 +1,11 @@
 #include "main.h"
 
 #include "cmsis_os.h"
+#include "queue.h"
 
 #include "math.h"
+#include "state_data.h"
+#include "string.h"
 #include "tim.h"
 
 // dm motor
@@ -13,17 +16,28 @@
 // rs motor
 #include "robstrite.h"
 
-extern osSemaphoreId_t can1BinarySemHandle;
-extern osSemaphoreId_t can2BinarySemHandle;
-extern osMutexId_t     motorDataMutexHandle;
+extern osSemaphoreId_t    can1BinarySemHandle;
+extern osSemaphoreId_t    can2BinarySemHandle;
+extern osMutexId_t        motorDataMutexHandle;
+extern osMessageQueueId_t usbCmdQueue1Handle;
+extern osMessageQueueId_t usbCmdQueue2Handle;
+extern osMessageQueueId_t usbStateQueueHandle;
 
 extern CAN_HandleTypeDef hcan1;
 extern CAN_HandleTypeDef hcan2;
+
+extern uint16_t index_to_id[16];
+extern uint16_t id_to_index[17];
 
 RobStrite_Motor RobStrite_01(0x02, &hcan2);
 RobStrite_Motor RobStrite_02(0x04, &hcan2);
 
 uint16_t motor_ids[] = {Motor1, Motor2};
+
+// void decode_motor_cmd(uint8_t* buf, GlobalMotorCmd* cmd);
+// void pack_motor_cmd(uint8_t* buf, GlobalMotorCmd* state);
+// void decode_motor_state(uint8_t* buf, GlobalMotorState* cmd);
+// void pack_motor_state(uint8_t* buf, GlobalMotorState* state);
 
 #ifdef __cplusplus
 extern "C"
@@ -33,6 +47,14 @@ extern "C"
     void CAN1_CtrlTask(void* argument)
     {
         /* USER CODE BEGIN CAN1_CtrlTask */
+        static GlobalMotorState motor_state;
+        static GlobalMotorCmd   motor_cmd;
+        static uint64_t         timeout = 0;
+
+        uint16_t id     = 0;
+        uint16_t index  = 0;
+        uint16_t result = 0;
+
         osDelay(1000);
         // write_motor_data(motor[Motor1].id, 10, 1, 0, 0, 0);
         // osDelay(1);
@@ -52,6 +74,34 @@ extern "C"
         for (;;)
         {
             osSemaphoreAcquire(can1BinarySemHandle, osWaitForever);
+
+            result = osMessageQueueGet(usbCmdQueue1Handle, &motor_cmd, 0, 0);
+            if (result == osOK)
+            {
+                timeout = 0;
+                // update motor cmds
+                id    = motor_cmd.id;
+                index = id_to_index[id];
+
+                memcpy(&motor_cmds[index], &motor_cmd, sizeof(GlobalMotorCmd));
+            }
+            else
+            {
+                // do nothing
+                timeout++;
+            }
+
+            // if (timeout > 1000)
+            // {
+            //     for (int i = 0; i < 2; ++i)
+            //     {
+            //         motor_cmds[motor_ids[i]].pos_set = 0;
+            //         motor_cmds[motor_ids[i]].vel_set = 0;
+            //         motor_cmds[motor_ids[i]].tor_set = 0;
+            //         motor_cmds[motor_ids[i]].kp_set  = 0;
+            //         motor_cmds[motor_ids[i]].kd_set  = 0.1;
+            //     }
+            // }
 
             phase += 0.01f;
 
@@ -73,6 +123,13 @@ extern "C"
                     motor[motor_ids[i]].ctrl.tor_set
                 );
             }
+
+            // send data to usb task
+            // xReturn = xQueueSend(myQueue01Handle, &send_data1, 0);
+            // if (xReturn == pdPASS)
+            // {
+            //     printf("send message send_data1 successfully \n");
+            // }
         }
         /* USER CODE END CAN1_CtrlTask */
     }
@@ -80,6 +137,14 @@ extern "C"
     void CAN2_CtrlTask(void* argument)
     {
         /* USER CODE BEGIN CAN2_CtrlTask */
+        static GlobalMotorState motor_state;
+        static GlobalMotorCmd   motor_cmd;
+        static uint64_t         timeout = 0;
+
+        uint16_t id     = 0;
+        uint16_t index  = 0;
+        uint16_t result = 0;
+
         osDelay(1000);
         // RobStrite_01.RobStrite_Get_CAN_ID();  //电机获取设备ID和MCU，请按照需要使用
         // osDelay(1);
@@ -100,6 +165,22 @@ extern "C"
         {
             osSemaphoreAcquire(can2BinarySemHandle, osWaitForever);
 
+            result = osMessageQueueGet(usbCmdQueue2Handle, &motor_cmd, 0, 0);
+            if (result == osOK)
+            {
+                timeout = 0;
+                // update motor cmds
+                id    = motor_cmd.id;
+                index = id_to_index[id];
+
+                memcpy(&motor_cmds[index], &motor_cmd, sizeof(GlobalMotorCmd));
+            }
+            else
+            {
+                // do nothing
+                timeout++;
+            }
+
             phase += 0.01f;
 
             //*********运控模式*************//
@@ -113,6 +194,13 @@ extern "C"
             RobStrite_02.RobStrite_Motor_move_control(T, -Angle, -Speed, Kp, Kd);
 
             // RobStrite_01.Disenable_Motor(0);	//电机失能，谨慎使用
+
+            // send data to usb task
+            // xReturn = xQueueSend(usbStateQueueHandle, &send_data1, 0);
+            // if (xReturn == pdPASS)
+            // {
+            //     printf("send message send_data1 successfully \n");
+            // }
         }
         /* USER CODE END CAN2_CtrlTask */
     }

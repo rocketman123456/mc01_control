@@ -1,20 +1,20 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2025 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file           : main.c
+ * @brief          : Main program body
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2025 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
@@ -27,11 +27,12 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "bsp_can.h"
+#include "dm_motor_ctrl.h"
+#include "dm_motor_drv.h"
 #include "stdint.h"
 #include "usbd_cdc_if.h"
-#include "bsp_can.h"
-#include "dm_motor_drv.h"
-#include "dm_motor_ctrl.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -54,8 +55,8 @@
 /* USER CODE BEGIN PV */
 extern TIM_HandleTypeDef htim2;
 
-//uint8_t usb_rx_buffer[64];
-//uint8_t usb_tx_buffer[64];
+// uint8_t usb_rx_buffer[64];
+// uint8_t usb_tx_buffer[64];
 
 extern osSemaphoreId_t can1BinarySemHandle;
 extern osSemaphoreId_t can2BinarySemHandle;
@@ -108,11 +109,11 @@ int main(void)
   MX_CAN2_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
-	//HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
-	MX_USB_DEVICE_Init();
-	bsp_can_init();
-	dm_motor_init();
-	HAL_Delay(1000);
+    // HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
+    MX_USB_DEVICE_Init();
+    bsp_can_init();
+    dm_motor_init();
+    HAL_Delay(1000);
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -128,18 +129,18 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
-  {
+    while (1)
+    {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-		//CDC_Transmit_FS("USB CDC Hello!\n",15);
-		//sprintf((char*)usb_tx_buffer, "STM32 Time: %lu ms\r\n", HAL_GetTick());
-    //CDC_Transmit_FS(usb_tx_buffer, strlen((char*)usb_tx_buffer));
-		//voltage = get_battery_voltage();
-    //HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-    //HAL_Delay(100);
-  }
+        // CDC_Transmit_FS("USB CDC Hello!\n",15);
+        // sprintf((char*)usb_tx_buffer, "STM32 Time: %lu ms\r\n", HAL_GetTick());
+        // CDC_Transmit_FS(usb_tx_buffer, strlen((char*)usb_tx_buffer));
+        // voltage = get_battery_voltage();
+        // HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+        // HAL_Delay(100);
+    }
   /* USER CODE END 3 */
 }
 
@@ -211,11 +212,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
-	if (htim->Instance == TIM3)
-	{
-		osSemaphoreRelease(can1BinarySemHandle);
-		osSemaphoreRelease(can2BinarySemHandle);
-	}
+    if (htim->Instance == TIM3)
+    {
+        osSemaphoreRelease(can1BinarySemHandle);
+        osSemaphoreRelease(can2BinarySemHandle);
+    }
   /* USER CODE END Callback 1 */
 }
 
@@ -226,11 +227,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
-  __disable_irq();
-  while (1)
-  {
-  }
+    /* User can add his own implementation to report the HAL error return state */
+    __disable_irq();
+    while (1)
+    {
+    }
   /* USER CODE END Error_Handler_Debug */
 }
 
@@ -245,8 +246,8 @@ void Error_Handler(void)
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+    /* User can add his own implementation to report the file name and line number,
+       ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
